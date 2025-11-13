@@ -260,27 +260,24 @@ scene.add(gridHelper);
 // Создаем GUI
 const gui = new GUI();
 
-// Папка для CSG настроек
-const csgFolder = gui.addFolder('CSG Settings');
-csgFolder.add(params, 'boxComplexity', 0, 2, 0.1)
-  .name('Box Complexity')
-  .onChange(async () => await buildDetail());
+// Папка для настроек
+const csgFolder = gui.addFolder('Complexity');
 csgFolder.add(params, 'holeComplexity', 0, 2, 0.1)
   .name('Hole Complexity')
-  .onChange(async () => await buildDetail());
+  .onFinishChange(async () => await buildDetail());
 csgFolder.open();
 
 // Папка для размеров детали
 const dimensionsFolder = gui.addFolder('Detail Dimensions');
 dimensionsFolder.add(params, 'detailLength', 100, 2000, 10)
   .name('Length')
-  .onChange(async () => await buildDetail());
+  .onFinishChange(async () => await buildDetail());
 dimensionsFolder.add(params, 'detailHeight', 100, 1000, 10)
   .name('Height')
-  .onChange(async () => await buildDetail());
+  .onFinishChange(async () => await buildDetail());
 dimensionsFolder.add(params, 'detailWidth', 10, 50, 1)
   .name('Width')
-  .onChange(async () => await buildDetail());
+  .onFinishChange(async () => await buildDetail());
 
 // Папка для визуализации
 const visualFolder = gui.addFolder('Visualization');
