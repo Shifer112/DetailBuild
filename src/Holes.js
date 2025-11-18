@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 
+const DEPTH_MARGIN = 2;
+
 /**
  * Класс для работы с отверстиями (holes) в детали
  */
 export default class Holes {
-  constructor(config, holeComplexity) {
+  constructor(config, cutIDMap) {
     this.config = config;
-    this.holeComplexity = holeComplexity;
+    this.cutIDMap = cutIDMap;
   }
 
   /**
@@ -14,15 +16,16 @@ export default class Holes {
    * @param {Manifold} detailMesh - основная деталь
    * @param {Object} hole - параметры отверстия
    * @param {Manifold} Manifold - класс Manifold
+   * @param {number} materialIndex - индекс материала для этого отверстия
+   * @param {THREE.Material} material - материал для этого отверстия (опционально)
    * @returns {Manifold} - деталь с примененным отверстием
    */
-  applyHole(detailMesh, hole, Manifold) {
+  applyHole(detailMesh, hole, Manifold, materialIndex, material = null) {
     const radius = hole.diam / 2;
-    const depth = hole.depth + 2;
+    const depth = hole.depth + DEPTH_MARGIN;
 
-    // lerp от 8 до 64 сегментов
-    // Fix Me
-    const cylinderSegments = Math.max(8, Math.round(THREE.MathUtils.lerp(6, 128, this.holeComplexity)));
+    // Автоматически рассчитываем количество сегментов на основе радиуса (min 32, max 128)
+    const cylinderSegments = Math.max(32, Math.min(128, Math.ceil(radius * 0.8)));
 
     // Manifold.cylinder(height, radiusLow, radiusHigh, circularSegments, center)
     let holeMesh = Manifold.cylinder(depth, radius, radius, cylinderSegments, true);
@@ -38,6 +41,17 @@ export default class Holes {
 
     const mat4 = Array.from(matrix.elements);
     holeMesh = holeMesh.transform(mat4);
+
+    holeMesh = holeMesh.asOriginal();
+    const cutID = holeMesh.originalID();
+
+    // Сохраняем информацию об обработке
+    this.cutIDMap.push({
+      id: cutID,
+      type: 'hole',
+      materialIndex: materialIndex,
+      material: material
+    });
 
     const result = detailMesh.subtract(holeMesh);
 

@@ -1,21 +1,26 @@
 import * as THREE from 'three';
 
+const DEPTH_MARGIN = 2;
+
 /**
  * Класс для работы с улыбками (smiles) на гранях детали
  */
 export default class Smile {
-  constructor(config, wasm) {
+  constructor(config, wasm, cutIDMap) {
     this.config = config;
     this.wasm = wasm;
+    this.cutIDMap = cutIDMap;
   }
 
   /**
    * Применяет smile к детали
    * @param {Manifold} detailMesh - основная деталь
    * @param {Object} smile - параметры smile
+   * @param {number} materialIndex - индекс материала для этой smile
+   * @param {THREE.Material} material - материал для этой smile (опционально)
    * @returns {Manifold} - деталь с примененной smile
    */
-  applySmile(detailMesh, smile) {
+  applySmile(detailMesh, smile, materialIndex, material = null) {
     const { side, offsetX = 0, offsetY = 0, width = 120, depth = 10 } = smile;
 
     // Проверяем валидность side (только 3-6)
@@ -26,7 +31,8 @@ export default class Smile {
     const { w } = this.config;
 
     // Создаем профиль smile
-    const N = 80; // Fix Me
+    // Количество сегментов зависит от глубины дуги (depth)
+    const N = Math.max(20, Math.min(70, Math.round(depth * 1.6 + 12)));
     const smilePoints = [];
 
     // Порог, после которого smile делится на дуги + прямой участок
@@ -72,14 +78,14 @@ export default class Smile {
     }
 
     // Замыкаем сверху
-    smilePoints.push([width / 2, 0]);
-    smilePoints.push([-width / 2, 0]);
+    smilePoints.push([width / 2, 1]);
+    smilePoints.push([-width / 2, 1]);
 
     // Создаем CrossSection
     let profile = this.wasm.CrossSection.ofPolygons([smilePoints]);
 
     // Экструдируем на толщину детали + запас
-    const extrudeDepth = w + 2;
+    const extrudeDepth = w + DEPTH_MARGIN;
     let smileManifold = profile.extrude(extrudeDepth, 0, 0, [1, 1], true);
     profile.delete();
 
@@ -96,6 +102,17 @@ export default class Smile {
 
     const mat4 = Array.from(matrix.elements);
     smileManifold = smileManifold.transform(mat4);
+
+    smileManifold = smileManifold.asOriginal();
+    const cutID = smileManifold.originalID();
+
+    // Сохраняем информацию об обработке
+    this.cutIDMap.push({
+      id: cutID,
+      type: 'smile',
+      materialIndex: materialIndex,
+      material: material
+    });
 
     const result = detailMesh.subtract(smileManifold);
 

@@ -4,9 +4,10 @@ import * as THREE from 'three';
  * Класс для работы с арками (arcs) на гранях детали
  */
 export default class Arc {
-  constructor(config, wasm) {
+  constructor(config, wasm, cutIDMap) {
     this.config = config;
     this.wasm = wasm;
+    this.cutIDMap = cutIDMap;
   }
 
   /**
@@ -68,9 +69,11 @@ export default class Arc {
    * Применяет арку к детали
    * @param {Manifold} detailMesh - основная деталь
    * @param {Object} arch - параметры арки
+   * @param {number} materialIndex - индекс материала для этой арки
+   * @param {THREE.Material} material - материал для этой арки (опционально)
    * @returns {Manifold} - деталь с примененной аркой
    */
-  async applyArch(detailMesh, arch) {
+  async applyArch(detailMesh, arch, materialIndex, material = null) {
     const { side, inner, offsetY } = arch;
 
     // Проверяем, что side в диапазоне 3-6
@@ -121,6 +124,18 @@ export default class Arc {
     const mat4 = Array.from(matrix.elements);
     archManifold = archManifold.transform(mat4);
 
+    archManifold = archManifold.asOriginal();
+    const cutID = archManifold.originalID();
+
+    // Сохраняем информацию об обработке
+    this.cutIDMap.push({
+      id: cutID,
+      type: 'arc',
+      inner: inner,
+      materialIndex: materialIndex,
+      material: material
+    });
+
     // Применяем union или subtract
     let result;
     if (inner) {
@@ -144,50 +159,17 @@ export default class Arc {
    */
   calculateArchPosition(arch) {
     const { l, h } = this.config;
-    const { side, inner } = arch;
+    const { side } = arch;
 
-    let posX = 0, posY = 0, posZ = 0;
+    const positions = {
+      3: { x: -l/2, y: 0, z: 0 },
+      4: { x: l/2, y: 0, z: 0 },
+      5: { x: 0, y: h/2, z: 0 },
+      6: { x: 0, y: -h/2, z: 0 }
+    };
+    const pos = positions[side];
 
-    switch(side) {
-      case 3: // Левая грань X-
-        if (inner) {
-          posX = -l/2;
-        } else {
-          posX = -l/2;
-        }
-        posY = 0;
-        posZ = 0;
-        break;
-      case 4: // Правая грань X+
-        if (inner) {
-          posX = l/2;
-        } else {
-          posX = l/2;
-        }
-        posY = 0;
-        posZ = 0;
-        break;
-      case 5: // Верхняя грань Y+
-        posX = 0;
-        if (inner) {
-          posY = h/2;
-        } else {
-          posY = h/2;
-        }
-        posZ = 0;
-        break;
-      case 6: // Нижняя грань Y-
-        posX = 0;
-        if (inner) {
-          posY = -h/2;
-        } else {
-          posY = -h/2;
-        }
-        posZ = 0;
-        break;
-    }
-
-    return new THREE.Vector3(posX, posY, posZ);
+    return new THREE.Vector3(pos.x, pos.y, pos.z);
   }
 
   /**

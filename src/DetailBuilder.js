@@ -21,12 +21,8 @@ async function initManifold() {
 }
 
 export default class DetailBuilder {
-  constructor(detailConfig, options = {}) {
+  constructor(detailConfig) {
     this.config = detailConfig;
-
-    // Отдельные параметры complexity для разных типов геометрии
-    this.boxComplexity = options.boxComplexity !== undefined ? options.boxComplexity : 1;
-    this.holeComplexity = options.holeComplexity !== undefined ? options.holeComplexity : 1;
   }
 
   async build() {
@@ -35,61 +31,80 @@ export default class DetailBuilder {
     this.wasm = wasm;
     this.Manifold = Manifold;
 
-    this.cutIDMap = []; // Массив для хранения информации о вырезах
+    // Массив для хранения информации о вырезах
+    this.cutIDMap = [];
+
+    let currentMaterialIndex = 6;
 
     // Экземпляры классов
-    const smileBuilder = new Smile(this.config, wasm);
-    const arcBuilder = new Arc(this.config, wasm);
-    const holeBuilder = new Holes(this.config, this.holeComplexity);
+    const smileBuilder = new Smile(this.config, wasm, this.cutIDMap);
+    const arcBuilder = new Arc(this.config, wasm, this.cutIDMap);
+    const holeBuilder = new Holes(this.config, this.cutIDMap);
     const rectBuilder = new Rect(this.config, this.cutIDMap);
-    const cornerBuilder = new Corner(this.config, wasm);
-    const edgeCutBuilder = new EdgeCut(this.config, wasm);
+    const cornerBuilder = new Corner(this.config, wasm, this.cutIDMap);
+    const edgeCutBuilder = new EdgeCut(this.config, wasm, this.cutIDMap);
 
     // Основная деталь
     let detail = Manifold.cube([this.config.l, this.config.h, this.config.w], true);
-
-    // Применяем smiles до создания originalID
-    if (this.config.smiles && this.config.smiles.length > 0) {
-      for (const smile of this.config.smiles) {
-        detail = smileBuilder.applySmile(detail, smile);
-      }
-    }
-
-    // Применяем арки до создания originalID
-    if (this.config.arcs && this.config.arcs.length > 0) {
-      for (const arch of this.config.arcs) {
-        detail = await arcBuilder.applyArch(detail, arch);
-      }
-    }
 
     // Помечаем деталь и сохраняем её ID
     detail = detail.asOriginal();
     this.detailOriginalID = detail.originalID();
 
+    // Применяем smiles
+    if (this.config.smiles && this.config.smiles.length > 0) {
+      for (const smile of this.config.smiles) {
+        detail = smileBuilder.applySmile(detail, smile, currentMaterialIndex++, smile.material);
+      }
+    }
+
+    // Применяем арки
+    if (this.config.arcs && this.config.arcs.length > 0) {
+      for (const arch of this.config.arcs) {
+        detail = await arcBuilder.applyArch(detail, arch, currentMaterialIndex++, arch.material);
+      }
+    }
+
     // Применяем отверстия
     if (this.config.holes && this.config.holes.length > 0) {
       for (const hole of this.config.holes) {
-        detail = holeBuilder.applyHole(detail, hole, Manifold);
+        detail = holeBuilder.applyHole(detail, hole, Manifold, currentMaterialIndex++, hole.material);
       }
     }
 
     // Применяем выемки
     if (this.config.rects && this.config.rects.length > 0) {
       for (const rect of this.config.rects) {
-        detail = rectBuilder.applyRect(detail, rect, Manifold);
+        detail = rectBuilder.applyRect(detail, rect, Manifold, currentMaterialIndex++, rect.material);
       }
     }
 
     // Применяем срезы углов
     if (this.config.corners && this.config.corners.length > 0) {
       for (const corner of this.config.corners) {
-        detail = cornerBuilder.applyCorner(detail, corner, Manifold);
+        detail = cornerBuilder.applyCorner(detail, corner, Manifold, currentMaterialIndex++, corner.material);
       }
     }
 
     // Применяем срезы торцов
     if (this.config.edges) {
-      detail = edgeCutBuilder.applyEdges(detail, this.config.edges);
+      // Создаем materialIndexMap для кромок
+      const edgeMaterialIndexMap = {
+        left: currentMaterialIndex++,
+        right: currentMaterialIndex++,
+        top: currentMaterialIndex++,
+        bottom: currentMaterialIndex++
+      };
+
+      // Создаем materialMap с материалами из конфига
+      const edgeMaterialMap = {
+        left: this.config.edges.left?.material,
+        right: this.config.edges.right?.material,
+        top: this.config.edges.top?.material,
+        bottom: this.config.edges.bottom?.material
+      };
+
+      detail = edgeCutBuilder.applyEdges(detail, this.config.edges, edgeMaterialIndexMap, edgeMaterialMap);
     }
 
     // Создаем геометрию с разными материалами для разных поверхностей
@@ -125,13 +140,13 @@ export default class DetailBuilder {
 
     // Создаем группы для разных материалов
     if (mesh.runOriginalID && mesh.runIndex) {
-      this.createMaterialGroups(geometry, mesh);
+      this.createMaterials(geometry, mesh);
     }
 
     this.computeNormals(geometry, 30);
 
-    // Используем материалы из конфига
-    let materials;
+    let materials = [];
+
     if (this.config.materials3D) {
       materials = [
         this.config.materials3D.face,
@@ -139,26 +154,19 @@ export default class DetailBuilder {
         this.config.materials3D.left,
         this.config.materials3D.right,
         this.config.materials3D.top,
-        this.config.materials3D.bottom,
-        this.config.materials3D.cuts
+        this.config.materials3D.bottom
       ];
-    } else {
-      // Дефолтные материалы
-      materials = [
-        new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide }),
-        new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide }),
-        new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide }),
-        new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide }),
-        new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide }),
-        new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide }),
-        new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
-      ];
+
+      // Используем индивидуальный материал
+      for (const cutInfo of this.cutIDMap) {
+        materials[cutInfo.materialIndex] = cutInfo.material;
+      }
     }
 
     return new THREE.Mesh(geometry, materials);
   }
 
-  createMaterialGroups(geometry, mesh) {
+  createMaterials(geometry, mesh) {
     // Анализируем runOriginalID для определения группы материала
     const numTriangles = mesh.triVerts.length / 3;
     const runIndex = mesh.runIndex;
@@ -183,7 +191,20 @@ export default class DetailBuilder {
       groups.get(originalID).push(triIdx);
     }
 
-    const trianglesByMaterial = Array.from({ length: 7 }, () => []);
+    // Поиск materialIndex по originalID
+    const originalIDToMaterialIndex = new Map();
+    for (const cutInfo of this.cutIDMap) {
+      originalIDToMaterialIndex.set(cutInfo.id, cutInfo.materialIndex);
+    }
+
+    let maxMaterialIndex = 5;
+    for (const cutInfo of this.cutIDMap) {
+      if (cutInfo.materialIndex > maxMaterialIndex) {
+        maxMaterialIndex = cutInfo.materialIndex;
+      }
+    }
+
+    const trianglesByMaterial = Array.from({ length: maxMaterialIndex + 1 }, () => []);
 
     for (const [originalID, triangles] of groups) {
       // Треугольники от оригинальной детали определяем по нормали
@@ -234,12 +255,13 @@ export default class DetailBuilder {
             trianglesByMaterial[4].push(triIdx);
           } else if (Math.abs(normY + 1) < 0.1) {
             trianglesByMaterial[5].push(triIdx);
-          } else {
-            trianglesByMaterial[6].push(triIdx); // Вырезы
           }
         }
       } else {
-        trianglesByMaterial[6].push(...triangles);
+        const materialIndex = originalIDToMaterialIndex.get(originalID);
+        if (materialIndex !== undefined) {
+          trianglesByMaterial[materialIndex].push(...triangles);
+        }
       }
     }
 
@@ -249,9 +271,9 @@ export default class DetailBuilder {
     let currentOffset = 0;
 
     // Добавляем треугольники по материалам и создаем группы
-    for (let materialIdx = 0; materialIdx < 7; materialIdx++) {
+    for (let materialIdx = 0; materialIdx < trianglesByMaterial.length; materialIdx++) {
       const triangles = trianglesByMaterial[materialIdx];
-      if (triangles.length > 0) {
+      if (triangles && triangles.length > 0) {
         // Добавляем группу для этого материала
         geometry.addGroup(currentOffset, triangles.length * 3, materialIdx);
 

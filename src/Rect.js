@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+const DEPTH_MARGIN = 2;
+
 /**
  * Класс для работы с прямоугольными выемками (rects) в детали
  */
@@ -14,12 +16,14 @@ export default class Rect {
    * @param {Manifold} detailMesh - основная деталь
    * @param {Object} rect - параметры выемки
    * @param {Manifold} Manifold - класс Manifold
+   * @param {number} materialIndex - индекс материала для этой выемки
+   * @param {THREE.Material} material - материал для этой выемки (опционально)
    * @returns {Manifold} - деталь с примененной выемкой
    */
-  applyRect(detailMesh, rect, Manifold) {
+  applyRect(detailMesh, rect, Manifold, materialIndex, material = null) {
     const width = rect.width;
     const height = rect.height;
-    const depth = (rect.fullDepth ? this.config.w : rect.depth) + 2;
+    const depth = (rect.fullDepth ? this.config.w : rect.depth) + DEPTH_MARGIN;
     const side = rect.side;
 
     let rectMesh;
@@ -52,11 +56,13 @@ export default class Rect {
     rectMesh = rectMesh.asOriginal();
     const cutID = rectMesh.originalID();
 
-    // Сохраняем информацию о вырезе
+    // Сохраняем информацию об обработке
     this.cutIDMap.push({
       id: cutID,
       type: 'rect',
-      fullDepth: rect.fullDepth || false
+      fullDepth: rect.fullDepth || false,
+      materialIndex: materialIndex,
+      material: material
     });
 
     const result = detailMesh.subtract(rectMesh);

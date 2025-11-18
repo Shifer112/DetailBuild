@@ -8,7 +8,10 @@ scene.background = new THREE.Color(0x263238);
 
 const canvas = document.getElementById('canvas3D');
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({
+  canvas: canvas,
+  antialias: true
+});
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = false;
 document.body.appendChild(renderer.domElement);
@@ -17,7 +20,6 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 camera.position.set(800, 600, 800);
 camera.lookAt(0, 0, 0);
 
-// Освещение
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
 scene.add(ambientLight);
 
@@ -30,7 +32,8 @@ controls.enableZoom = true;
 controls.enableDamping = true;
 controls.dampingFactor = 0.3;
 
-// Создаем деталь по контракту
+const group1 = new THREE.MeshStandardMaterial({ color: 0x33A8FF, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide });
+
 const detailBuild = {
   "l": 1000, // Длина детали
   "h": 600, // Ширина детали
@@ -41,8 +44,7 @@ const detailBuild = {
     "left": new THREE.MeshStandardMaterial({ color: 0xd4a574, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide }),
     "right": new THREE.MeshStandardMaterial({ color: 0xff00ff, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide }),
     "top": new THREE.MeshStandardMaterial({ color: 0xffff00, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide }),
-    "bottom": new THREE.MeshStandardMaterial({ color: 0x00ffff, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide }),
-    "cuts": new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
+    "bottom": new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide }),
   },
   "rects": [
     {
@@ -55,6 +57,7 @@ const detailBuild = {
       "x_axis": "0", // База привязки X ("0" или "w")
       "y_axis": "0", // База привязки Y ("0" или "h")
       "fullDepth": true, // На всю ли глубину детали
+      "material": new THREE.MeshStandardMaterial({ color: 0xFF5733, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
     {
       "side": 1, // Передняя грань (1-6)
@@ -66,6 +69,7 @@ const detailBuild = {
       "x_axis": "0", // База привязки X ("0" или "w")
       "y_axis": "0", // База привязки Y ("0" или "h")
       "fullDepth": false, // На всю ли глубину детали
+      "material": group1
     },
     {
       "side": 1, // Передняя грань (1-6)
@@ -77,6 +81,7 @@ const detailBuild = {
       "x_axis": "0", // База привязки X ("0" или "w")
       "y_axis": "0", // База привязки Y ("0" или "h")
       "fullDepth": false, // На всю ли глубину детали
+      "material": new THREE.MeshStandardMaterial({ color: 0x3357FF, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
     {
       "side": 3, // Передняя грань (1-6)
@@ -88,6 +93,7 @@ const detailBuild = {
       "x_axis": "0", // База привязки X ("0" или "w")
       "y_axis": "0", // База привязки Y ("0" или "h")
       "fullDepth": false,
+      "material": new THREE.MeshStandardMaterial({ color: 0xFF33A8, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
     {
       "side": 3, // Передняя грань (1-6)
@@ -99,6 +105,7 @@ const detailBuild = {
       "x_axis": "0", // База привязки X ("0" или "w")
       "y_axis": "0", // База привязки Y ("0" или "h")
       "fullDepth": false,
+      "material": new THREE.MeshStandardMaterial({ color: 0x33FFF6, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     }
   ],
   "holes": [ // отверстия
@@ -110,6 +117,7 @@ const detailBuild = {
       "diam": 25, // Диаметр
       "x_axis": "0", // База привязки X
       "y_axis": "0", // База привязки Y
+      "material": new THREE.MeshStandardMaterial({ color: 0x66FF33, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
     {
       "side": 3, // Передняя грань
@@ -119,6 +127,7 @@ const detailBuild = {
       "diam": 8, // Диаметр
       "x_axis": "0", // База привязки X
       "y_axis": "0", // База привязки Y
+      "material": new THREE.MeshStandardMaterial({ color: 0xFF8F33, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
     {
       "side": 1, // Передняя грань
@@ -128,6 +137,7 @@ const detailBuild = {
       "diam": 200, // Диаметр
       "x_axis": "0", // База привязки X
       "y_axis": "0", // База привязки Y
+      "material": new THREE.MeshStandardMaterial({ color: 0xFF3366, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
     {
       "side": 1, // Передняя грань
@@ -137,6 +147,7 @@ const detailBuild = {
       "diam": 35, // Диаметр
       "x_axis": "0", // База привязки X
       "y_axis": "0", // База привязки Y
+      "material": new THREE.MeshStandardMaterial({ color: 0x8F33FF, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
     {
       "side": 1, // Передняя грань (1-6)
@@ -146,6 +157,7 @@ const detailBuild = {
       "diam": 50, // Диаметр
       "x_axis": "0", // База привязки X ("0" или "w")
       "y_axis": "0", // База привязки Y ("0" или "h")
+      "material": group1
     }
   ],
   "smiles": [
@@ -154,7 +166,8 @@ const detailBuild = {
       "offsetX": 0,     // Смещение по горизонтали (центр)
       "offsetY": 0,     // Не используется для side 3
       "width": 400,     // Ширина smile
-      "depth": 20       // Глубина выемки
+      "depth": 20,      // Глубина выемки
+      "material": new THREE.MeshStandardMaterial({ color: 0x33FF33, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     }
   ],
   "corners": [
@@ -164,29 +177,33 @@ const detailBuild = {
       "y": 60,          // Размер по Y
       "type": 2,         // Тип: прямоугольный срез
       "radius1": 0,      // Радиус скругления первой стороны (пока не реализовано)
-      "radius2": 0       // Радиус скругления второй стороны (пока не реализовано)
+      "radius2": 0,      // Радиус скругления второй стороны (пока не реализовано)
+      "material": new THREE.MeshStandardMaterial({ color: 0x3333FF, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
     {
       "angle": 3,        // Правый верхний угол
       "type": 3,         // Тип: цилиндрическое скругление
       "r": 60,           // Радиус цилиндра
       "x_offset": 0,    // Смещение от угла по X (+ внутрь детали)
-      "y_offset": 0    // Смещение от угла по Y (+ внутрь детали)
+      "y_offset": 0,    // Смещение от угла по Y (+ внутрь детали)
+      "material": new THREE.MeshStandardMaterial({ color: 0xFFCC33, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
   ],
   "arcs": [
     {
       "side": 4,        // Левая грань X-
       "inner": true,   // Наружная арка
-      "offsetY": 50      // Высота подъема арки
+      "offsetY": 50,     // Высота подъема арки
+      "material": new THREE.MeshStandardMaterial({ color: 0x33FFCC, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     }
   ],
   "edges": { // кромки (торцы детали)
     "left": {
       "type": "srez",      // тип обработки кромки
-      "degrees": 44.9        // угол среза
+      "degrees": 44.9,       // угол среза
+      "material": new THREE.MeshStandardMaterial({ color: 0xCC33FF, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
-    "top": 1, // если ничего делать не нужно передавать 1
+    "top": 1, // без обработок - 1
     "right": 1,
     "bottom": 1
   },
@@ -198,8 +215,6 @@ const detailBuild = {
 
 // Параметры для GUI
 const params = {
-  boxComplexity: 0,
-  holeComplexity: 0.2,
   showWireframe: true,
   detailLength: 1000,
   detailHeight: 600,
@@ -209,9 +224,8 @@ const params = {
 let detail = null;
 let wireframe = null;
 
-// Функция для построения/перестроения детали
+// Построение детали
 async function buildDetail() {
-  // Удаляем старую деталь и wireframe
   if (detail) {
     scene.remove(detail);
     detail.geometry.dispose();
@@ -227,21 +241,15 @@ async function buildDetail() {
     wireframe.material.dispose();
   }
 
-  // Обновляем конфигурацию
   detailBuild.l = params.detailLength;
   detailBuild.h = params.detailHeight;
   detailBuild.w = params.detailWidth;
 
-  // Создаем новую деталь
-  const builder = new DetailBuilder(detailBuild, {
-    boxComplexity: params.boxComplexity,
-    holeComplexity: params.holeComplexity
-  });
+  const builder = new DetailBuilder(detailBuild);
   detail = await builder.build();
 
   scene.add(detail);
 
-  // Создаем wireframe если включен
   if (params.showWireframe) {
     wireframe = meshToLine(detail);
     scene.add(wireframe);
@@ -250,6 +258,8 @@ async function buildDetail() {
 
 buildDetail();
 
+console.log(detailBuild)
+
 const axesHelper = new THREE.AxesHelper(500);
 scene.add(axesHelper);
 
@@ -257,17 +267,8 @@ const gridHelper = new THREE.GridHelper(2000, 20);
 gridHelper.position.y = -300;
 scene.add(gridHelper);
 
-// Создаем GUI
 const gui = new GUI();
 
-// Папка для настроек
-const csgFolder = gui.addFolder('Complexity');
-csgFolder.add(params, 'holeComplexity', 0, 2, 0.1)
-  .name('Hole Complexity')
-  .onFinishChange(async () => await buildDetail());
-csgFolder.open();
-
-// Папка для размеров детали
 const dimensionsFolder = gui.addFolder('Detail Dimensions');
 dimensionsFolder.add(params, 'detailLength', 100, 2000, 10)
   .name('Length')
@@ -279,7 +280,6 @@ dimensionsFolder.add(params, 'detailWidth', 10, 50, 1)
   .name('Width')
   .onFinishChange(async () => await buildDetail());
 
-// Папка для визуализации
 const visualFolder = gui.addFolder('Visualization');
 visualFolder.add(params, 'showWireframe')
   .name('Show Wireframe')

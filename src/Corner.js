@@ -1,12 +1,15 @@
 import * as THREE from 'three';
 
+const DEPTH_MARGIN = 2;
+
 /**
  * Класс для работы с углами (corners) детали
  */
 export default class Corner {
-  constructor(config, wasm) {
+  constructor(config, wasm, cutIDMap) {
     this.config = config;
     this.wasm = wasm;
+    this.cutIDMap = cutIDMap;
   }
 
   /**
@@ -14,9 +17,11 @@ export default class Corner {
    * @param {Manifold} detailMesh - основная деталь
    * @param {Object} corner - параметры угла
    * @param {Manifold} Manifold - класс Manifold
+   * @param {number} materialIndex - индекс материала для этого угла
+   * @param {THREE.Material} material - материал для этого угла (опционально)
    * @returns {Manifold} - деталь с обработанным углом
    */
-  applyCorner(detailMesh, corner, Manifold) {
+  applyCorner(detailMesh, corner, Manifold, materialIndex, material = null) {
     if (!corner.type) return detailMesh;
 
     const { l, h, w } = this.config;
@@ -48,14 +53,26 @@ export default class Corner {
       let profile = this.wasm.CrossSection.ofPolygons([triangle]);
 
       // Экструдируем на всю глубину детали
-      const depth = w + 2;
+      const depth = w + DEPTH_MARGIN;
       let cornerMesh = profile.extrude(depth, 0, 0, [1, 1], true);
       profile.delete();
 
       // Позиционируем в нужный угол детали
-      const position = this.calculateCornerPosition(corner, l, h, w);
+      const position = this.calculateCornerPosition(corner, l, h);
 
       cornerMesh = cornerMesh.translate(position.x, position.y, position.z);
+
+      cornerMesh = cornerMesh.asOriginal();
+      const cutID = cornerMesh.originalID();
+
+      // Сохраняем информацию об обработке
+      this.cutIDMap.push({
+        id: cutID,
+        type: 'corner',
+        cornerType: 2,
+        materialIndex: materialIndex,
+        material: material
+      });
 
       // Выполняем вычитание
       const result = detailMesh.subtract(cornerMesh);
@@ -104,14 +121,26 @@ export default class Corner {
       circle.delete();
 
       // Экструдируем на всю глубину
-      const depth = w + 2;
+      const depth = w + DEPTH_MARGIN;
       let cornerMesh = profile.extrude(depth, 0, 0, [1, 1], true);
       profile.delete();
 
       // Позиционируем в нужный угол
-      const position = this.calculateCornerPosition(corner, l, h, w);
+      const position = this.calculateCornerPosition(corner, l, h);
 
       cornerMesh = cornerMesh.translate(position.x, position.y, position.z);
+
+      cornerMesh = cornerMesh.asOriginal();
+      const cutID = cornerMesh.originalID();
+
+      // Сохраняем информацию об обработке
+      this.cutIDMap.push({
+        id: cutID,
+        type: 'corner',
+        cornerType: 1,
+        materialIndex: materialIndex,
+        material: material
+      });
 
       // Выполняем вычитание
       const result = detailMesh.subtract(cornerMesh);
@@ -120,19 +149,31 @@ export default class Corner {
       return result;
     }
 
+    // Цилиндрическое скругление угла
     if (corner.type === 3) {
-      // Цилиндрическое скругление угла
       if (!corner.r) return detailMesh;
 
-      // Создаем цилиндр вдоль всей глубины детали
       const radius = corner.r;
-      const height = w + 2;
-      let cornerMesh = Manifold.cylinder(height, radius, radius, 32, true);
+      const height = w + DEPTH_MARGIN;
+      const segments = Math.max(32, Math.min(64, Math.ceil(radius * 0.8)));
+      let cornerMesh = Manifold.cylinder(height, radius, radius, segments, true);
 
       // Позиционируем цилиндр в угол детали
-      const position = this.calculateCornerCylinderPosition(corner, l, h, w, radius);
+      const position = this.calculateCornerCylinderPosition(corner, l, h);
 
       cornerMesh = cornerMesh.translate(position.x, position.y, position.z);
+
+      cornerMesh = cornerMesh.asOriginal();
+      const cutID = cornerMesh.originalID();
+
+      // Сохраняем информацию об обработке
+      this.cutIDMap.push({
+        id: cutID,
+        type: 'corner',
+        cornerType: 3,
+        materialIndex: materialIndex,
+        material: material
+      });
 
       // Вычитаем
       const result = detailMesh.subtract(cornerMesh);
@@ -149,7 +190,6 @@ export default class Corner {
    * @param {Object} corner - параметры угла
    * @param {number} l - длина детали
    * @param {number} h - высота детали
-   * @param {number} w - толщина детали
    * @returns {THREE.Vector3} - позиция
    */
   calculateCornerPosition(corner, l, h) {
