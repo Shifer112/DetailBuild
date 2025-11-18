@@ -21,7 +21,8 @@ export default class Smile {
    * @returns {Manifold} - деталь с примененной smile
    */
   applySmile(detailMesh, smile, materialIndex, material = null) {
-    const { side, offsetX = 0, offsetY = 0, width = 120, depth = 10 } = smile;
+    const { side, offsetX = 0, offsetY = 0, depth = 10 } = smile;
+    const width = smile.standartValue || smile.width || 120;
 
     // Проверяем валидность side (только 3-6)
     if (side < 3 || side > 6) {

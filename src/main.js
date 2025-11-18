@@ -52,10 +52,11 @@ const detailBuild = {
       "x": 200, // Смещение X
       "y": 500, // Смещение Y
       "width": 100, // Ширина выемки
-      "height": 100, // Высота выемки
+      "height": 110, // Высота выемки
       "depth": 10, // Глубина выемки
       "x_axis": "0", // База привязки X ("0" или "w")
       "y_axis": "0", // База привязки Y ("0" или "h")
+      "r": 5,
       "fullDepth": true, // На всю ли глубину детали
       "material": new THREE.MeshStandardMaterial({ color: 0xFF5733, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
@@ -64,10 +65,11 @@ const detailBuild = {
       "x": 500, // Смещение X
       "y": 500, // Смещение Y
       "width": 20, // Ширина выемки
-      "height": 100, // Высота выемки
+      "height": 110, // Высота выемки
       "depth": 8, // Глубина выемки
       "x_axis": "0", // База привязки X ("0" или "w")
       "y_axis": "0", // База привязки Y ("0" или "h")
+      "r": 8,
       "fullDepth": false, // На всю ли глубину детали
       "material": group1
     },
@@ -80,6 +82,7 @@ const detailBuild = {
       "depth": 8, // Глубина выемки
       "x_axis": "0", // База привязки X ("0" или "w")
       "y_axis": "0", // База привязки Y ("0" или "h")
+      "r": 0,
       "fullDepth": false, // На всю ли глубину детали
       "material": new THREE.MeshStandardMaterial({ color: 0x3357FF, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
@@ -92,6 +95,7 @@ const detailBuild = {
       "depth": 20, // Глубина выемки
       "x_axis": "0", // База привязки X ("0" или "w")
       "y_axis": "0", // База привязки Y ("0" или "h")
+      "r": 0,
       "fullDepth": false,
       "material": new THREE.MeshStandardMaterial({ color: 0xFF33A8, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
@@ -165,7 +169,7 @@ const detailBuild = {
       "side": 6,        // Верхняя грань
       "offsetX": 0,     // Смещение по горизонтали (центр)
       "offsetY": 0,     // Не используется для side 3
-      "width": 400,     // Ширина smile
+      "standartValue": 400,     // Ширина smile
       "depth": 20,      // Глубина выемки
       "material": new THREE.MeshStandardMaterial({ color: 0x33FF33, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     }
@@ -176,8 +180,8 @@ const detailBuild = {
       "x": 60,          // Размер по X
       "y": 60,          // Размер по Y
       "type": 2,         // Тип: прямоугольный срез
-      "radius1": 0,      // Радиус скругления первой стороны (пока не реализовано)
-      "radius2": 0,      // Радиус скругления второй стороны (пока не реализовано)
+      "radius1": 10,      // Радиус скругления первой стороны
+      "radius2": 0,      // Радиус скругления второй стороны
       "material": new THREE.MeshStandardMaterial({ color: 0x3333FF, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide })
     },
     {

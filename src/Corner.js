@@ -13,6 +13,31 @@ export default class Corner {
   }
 
   /**
+   * Аппроксимация кубической кривой Безье точками
+   * @param {Array} p0 - начальная точка [x, y]
+   * @param {Array} p1 - первая контрольная точка [x, y]
+   * @param {Array} p2 - вторая контрольная точка [x, y]
+   * @param {Array} p3 - конечная точка [x, y]
+   * @param {number} steps - количество шагов
+   * @returns {Array} - массив точек
+   */
+  bezierCurve(p0, p1, p2, p3, steps = 8) {
+    const points = [];
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const invT = 1 - t;
+      const invT2 = invT * invT;
+      const invT3 = invT2 * invT;
+      const t2 = t * t;
+      const t3 = t2 * t;
+      const x = invT3 * p0[0] + 3 * invT2 * t * p1[0] + 3 * invT * t2 * p2[0] + t3 * p3[0];
+      const y = invT3 * p0[1] + 3 * invT2 * t * p1[1] + 3 * invT * t2 * p2[1] + t3 * p3[1];
+      points.push([x, y]);
+    }
+    return points;
+  }
+
+  /**
    * Применяет обработку угла к детали
    * @param {Manifold} detailMesh - основная деталь
    * @param {Object} corner - параметры угла
@@ -30,27 +55,160 @@ export default class Corner {
       // Прямоугольный срез угла
       if (!corner.x || !corner.y) return detailMesh;
 
-      // Создаем треугольный профиль для среза
-      let triangle;
+      const radius1 = corner.radius1 || 0;
+      const radius2 = corner.radius2 || 0;
+
+      // Вычисляем параметры для скругления
+      const cornerRotate = Math.atan(corner.x / corner.y);
+
+      let radius1Delta = { offset: 0, deltaOffsetX: 0, deltaOffsetY: 0 };
+      let radius2Delta = { offset: 0, deltaOffsetX: 0, deltaOffsetY: 0 };
+
+      if (radius1 > 0) {
+        radius1Delta.offset = Math.tan(Math.atan(corner.y / corner.x) / 2) * radius1;
+        radius1Delta.deltaOffsetY = radius1Delta.offset * Math.cos(cornerRotate);
+        radius1Delta.deltaOffsetX = radius1Delta.offset * Math.sin(cornerRotate);
+      }
+
+      if (radius2 > 0) {
+        radius2Delta.offset = Math.tan(Math.atan(corner.x / corner.y) / 2) * radius2;
+        radius2Delta.deltaOffsetY = radius2Delta.offset * Math.cos(cornerRotate);
+        radius2Delta.deltaOffsetX = radius2Delta.offset * Math.sin(cornerRotate);
+      }
+
+      // Создаем профиль среза с учетом скруглений
+      let profilePoints = [];
 
       switch (corner.angle) {
         case 1: // Левый нижний
-          triangle = [[0, 0], [corner.x, 0], [0, corner.y]];
+          profilePoints.push([0, 0]);
+          if (radius2 > 0) {
+            const startPoint = [0, corner.y + radius2Delta.offset];
+            profilePoints.push(startPoint);
+            const curve = this.bezierCurve(
+              startPoint,
+              startPoint,
+              [0, corner.y],
+              [radius2Delta.deltaOffsetX, corner.y - radius2Delta.deltaOffsetY]
+            );
+            profilePoints.push(...curve);
+          } else {
+            profilePoints.push([0, corner.y]);
+          }
+
+          if (radius1 > 0) {
+            const startPoint = [corner.x - radius1Delta.deltaOffsetX, radius1Delta.deltaOffsetY];
+            profilePoints.push(startPoint);
+            const curve = this.bezierCurve(
+              startPoint,
+              startPoint,
+              [corner.x, 0],
+              [corner.x + radius1Delta.offset, 0]
+            );
+            profilePoints.push(...curve);
+          } else {
+            profilePoints.push([corner.x, 0]);
+          }
           break;
+
         case 2: // Левый верхний
-          triangle = [[0, 0], [0, -corner.y], [corner.x, 0]];
+          profilePoints.push([0, 0]);
+          if (radius2 > 0) {
+            const startPoint = [0, -corner.y - radius2Delta.offset];
+            profilePoints.push(startPoint);
+            const curve = this.bezierCurve(
+              startPoint,
+              startPoint,
+              [0, -corner.y],
+              [radius2Delta.deltaOffsetX, -corner.y + radius2Delta.deltaOffsetY]
+            );
+            profilePoints.push(...curve);
+          } else {
+            profilePoints.push([0, -corner.y]);
+          }
+
+          if (radius1 > 0) {
+            const startPoint = [corner.x - radius1Delta.deltaOffsetX, -radius1Delta.deltaOffsetY];
+            profilePoints.push(startPoint);
+            const curve = this.bezierCurve(
+              startPoint,
+              startPoint,
+              [corner.x, 0],
+              [corner.x + radius1Delta.offset, 0]
+            );
+            profilePoints.push(...curve);
+          } else {
+            profilePoints.push([corner.x, 0]);
+          }
           break;
+
         case 3: // Правый верхний
-          triangle = [[0, 0], [-corner.x, 0], [0, -corner.y]];
+          profilePoints.push([0, 0]);
+          if (radius2 > 0) {
+            const startPoint = [0, -corner.y - radius2Delta.offset];
+            profilePoints.push(startPoint);
+            const curve = this.bezierCurve(
+              startPoint,
+              startPoint,
+              [0, -corner.y],
+              [-radius2Delta.deltaOffsetX, -corner.y + radius2Delta.deltaOffsetY]
+            );
+            profilePoints.push(...curve);
+          } else {
+            profilePoints.push([0, -corner.y]);
+          }
+
+          if (radius1 > 0) {
+            const startPoint = [-corner.x + radius1Delta.deltaOffsetX, -radius1Delta.deltaOffsetY];
+            profilePoints.push(startPoint);
+            const curve = this.bezierCurve(
+              startPoint,
+              startPoint,
+              [-corner.x, 0],
+              [-corner.x - radius1Delta.offset, 0]
+            );
+            profilePoints.push(...curve);
+          } else {
+            profilePoints.push([-corner.x, 0]);
+          }
           break;
+
         case 4: // Правый нижний
-          triangle = [[0, 0], [0, corner.y], [-corner.x, 0]];
+          profilePoints.push([0, 0]);
+          if (radius2 > 0) {
+            const startPoint = [0, corner.y + radius2Delta.offset];
+            profilePoints.push(startPoint);
+            const curve = this.bezierCurve(
+              startPoint,
+              startPoint,
+              [0, corner.y],
+              [-radius2Delta.deltaOffsetX, corner.y - radius2Delta.deltaOffsetY]
+            );
+            profilePoints.push(...curve);
+          } else {
+            profilePoints.push([0, corner.y]);
+          }
+
+          if (radius1 > 0) {
+            const startPoint = [-corner.x + radius1Delta.deltaOffsetX, radius1Delta.deltaOffsetY];
+            profilePoints.push(startPoint);
+            const curve = this.bezierCurve(
+              startPoint,
+              startPoint,
+              [-corner.x, 0],
+              [-corner.x - radius1Delta.offset, 0]
+            );
+            profilePoints.push(...curve);
+          } else {
+            profilePoints.push([-corner.x, 0]);
+          }
           break;
+
         default:
-          triangle = [[0, 0], [corner.x, 0], [0, corner.y]];
+          profilePoints = [[0, 0], [corner.x, 0], [0, corner.y]];
       }
 
-      let profile = this.wasm.CrossSection.ofPolygons([triangle]);
+      let profile = this.wasm.CrossSection.ofPolygons([profilePoints]);
 
       // Экструдируем на всю глубину детали
       const depth = w + DEPTH_MARGIN;

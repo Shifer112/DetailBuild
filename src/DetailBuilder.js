@@ -40,7 +40,7 @@ export default class DetailBuilder {
     const smileBuilder = new Smile(this.config, wasm, this.cutIDMap);
     const arcBuilder = new Arc(this.config, wasm, this.cutIDMap);
     const holeBuilder = new Holes(this.config, this.cutIDMap);
-    const rectBuilder = new Rect(this.config, this.cutIDMap);
+    const rectBuilder = new Rect(this.config, wasm, this.cutIDMap);
     const cornerBuilder = new Corner(this.config, wasm, this.cutIDMap);
     const edgeCutBuilder = new EdgeCut(this.config, wasm, this.cutIDMap);
 
